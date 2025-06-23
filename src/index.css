@@ -1,0 +1,73 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 276 100% 64%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 160 84% 51%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 5.9% 13%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 240 5.9% 13%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 10%;
+    --input: 240 5.9% 13%;
+    --ring: 276 100% 64%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 240 10% 6%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 276 100% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 276 100% 64%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.glass-card {
+  @apply bg-opacity-10 backdrop-blur-sm bg-white/10 border border-white/20 shadow-md;
+}
+
+.glass-button {
+  @apply bg-opacity-20 backdrop-blur-sm bg-white/20 hover:bg-white/30 border border-white/30 transition-all;
+}
+
+.ticket-shadow {
+  box-shadow: 0 10px 25px -5px rgba(153, 69, 255, 0.5);
+}
+
+.text-gradient {
+  @apply text-transparent bg-clip-text bg-solana-gradient;
+}
