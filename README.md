@@ -38,7 +38,6 @@
 
 ## 🧬 Tech Stack
 
-```mermaid
 graph TD;
     User[🧍 CDI Wallet (xWallet)]
     Frontend[🌐 Angular UI]
@@ -52,6 +51,7 @@ graph TD;
     Web3 --> SmartContracts
     SmartContracts --> Blockchain
     SmartContracts --> PricingAI
+
 ```
 
 * 🧠 **Wallet Layer**: CDI Wallet (Coinbase Developer Platform)
