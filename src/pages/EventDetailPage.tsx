@@ -16,6 +16,7 @@ import CheckInScanner from '@/components/CheckInScanner';
 import { Badge } from '@/components/ui/badge';
 import RealtimeTicketCounter from '@/components/RealtimeTicketCounter';
 import EnhancedCheckInScanner from '@/components/EnhancedCheckInScanner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Chain-specific token configurations
 const CHAIN_TOKENS: Record<number, { name: string; symbol: string; priceMultiplier: number }> = {
@@ -109,9 +110,39 @@ const EventDetailPage = () => {
   };
   
   const handleImageError = () => {
-    console.error('Error loading image from URL:', event?.image_url);
+    console.error('Error loading image from URL:', getImageUrl());
     setImageError(true);
     setImageLoaded(false);
+  };
+  
+  const getImageUrl = () => {
+    if (!event?.image_url || event.image_url.trim() === '') {
+      return getPlaceholderImage();
+    }
+
+    // Check if it's already a full URL (external or Supabase storage)
+    if (event.image_url.startsWith('http://') || event.image_url.startsWith('https://')) {
+      return event.image_url;
+    }
+
+    // Check if it's a Supabase storage path
+    if (event.image_url.includes('event-photos/') || event.image_url.startsWith('event-photos/')) {
+      const { data } = supabase.storage
+        .from('event-photos')
+        .getPublicUrl(event.image_url.replace('event-photos/', ''));
+      return data.publicUrl;
+    }
+
+    // If it's a relative path, try to construct Supabase storage URL
+    if (!event.image_url.startsWith('blob:')) {
+      const { data } = supabase.storage
+        .from('event-photos')
+        .getPublicUrl(event.image_url);
+      return data.publicUrl;
+    }
+
+    // Fallback for any other case
+    return getPlaceholderImage();
   };
   
   const getPlaceholderImage = () => {
@@ -126,20 +157,6 @@ const EventDetailPage = () => {
     const seed = id ? parseInt(id.substring(0, 8), 16) : 0;
     const index = seed % placeholders.length;
     return `${placeholders[index]}?w=800&h=450&fit=crop&auto=format`;
-  };
-
-  const isValidImageUrl = (url: string) => {
-    if (!url || url.trim() === '') return false;
-    if (url.startsWith('blob:')) return false;
-    
-    if (url.includes('supabase') && url.includes('/storage/v1/object/public/')) return true;
-    
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
   };
 
   if (isLoading) {
@@ -164,6 +181,8 @@ const EventDetailPage = () => {
     );
   }
 
+  const finalImageUrl = getImageUrl();
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="grid md:grid-cols-3 gap-8">
@@ -171,19 +190,17 @@ const EventDetailPage = () => {
           <h1 className="text-3xl font-bold mb-4">{event.title}</h1>
           
           <div className="rounded-lg overflow-hidden mb-6 aspect-video bg-muted relative">
-            {/* Main image - only show if valid and not errored */}
-            {isValidImageUrl(event.image_url) && !imageError && (
-              <img 
-                src={event.image_url} 
-                alt={event.title} 
-                className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-              />
-            )}
+            {/* Main image */}
+            <img 
+              src={finalImageUrl} 
+              alt={event.title} 
+              className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
             
-            {/* Show placeholder while loading or if error/no valid image */}
-            {(!imageLoaded || imageError || !isValidImageUrl(event.image_url)) && (
+            {/* Show placeholder while loading or if error */}
+            {(!imageLoaded || imageError) && (
               <div className="absolute inset-0 w-full h-full">
                 <img 
                   src={getPlaceholderImage()} 
@@ -193,6 +210,7 @@ const EventDetailPage = () => {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
+                {/* Ultimate fallback - gradient background with icon */}
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
                   <Image className="h-16 w-16 text-white opacity-50" />
                 </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -27,6 +26,37 @@ const EventsPage = () => {
   const { useEventsQuery } = useEvents();
   const { data: eventsData = [], isLoading, refetch, error } = useEventsQuery();
 
+  // Helper function to get Supabase storage URL
+  const getSupabaseImageUrl = (imageUrl: string) => {
+    if (!imageUrl || imageUrl.trim() === '') {
+      return 'https://images.unsplash.com/photo-1591522811280-a8759970b03f';
+    }
+
+    // Check if it's already a full URL (external or Supabase storage)
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // Check if it's a Supabase storage path
+    if (imageUrl.includes('event-photos/') || imageUrl.startsWith('event-photos/')) {
+      const { data } = supabase.storage
+        .from('event-photos')
+        .getPublicUrl(imageUrl.replace('event-photos/', ''));
+      return data.publicUrl;
+    }
+
+    // If it's a relative path, try to construct Supabase storage URL
+    if (!imageUrl.startsWith('blob:')) {
+      const { data } = supabase.storage
+        .from('event-photos')
+        .getPublicUrl(imageUrl);
+      return data.publicUrl;
+    }
+
+    // Fallback for any other case
+    return 'https://images.unsplash.com/photo-1591522811280-a8759970b03f';
+  };
+
   // Process events data to match the EventCard component format
   const processEvents = (events: any[]) => {
     console.log('Processing events:', events);
@@ -49,16 +79,13 @@ const EventsPage = () => {
         // Format date and time for display
         const eventDate = new Date(event.date);
         
-        // Use a default image if none is provided
-        const defaultImage = 'https://images.unsplash.com/photo-1591522811280-a8759970b03f';
-        
         return {
           id: event.id,
           title: event.title,
           date: format(eventDate, 'PP'),
           time: format(eventDate, 'p'),
           location: event.location,
-          imageUrl: event.image_url && event.image_url.trim() !== '' ? event.image_url : defaultImage,
+          imageUrl: getSupabaseImageUrl(event.image_url),
           price: `${event.price} SOL`,
           category: 'Technology', // Default category if not specified
           availability

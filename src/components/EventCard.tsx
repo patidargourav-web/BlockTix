@@ -1,10 +1,10 @@
-
 import { Calendar, Clock, MapPin, Image } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState } from 'react';
 import { useCDPWallet } from '@/providers/CDPWalletProvider';
+import { supabase } from '@/integrations/supabase/client';
 
 // Chain-specific token configurations
 const CHAIN_TOKENS: Record<number, { name: string; symbol: string; priceMultiplier: number }> = {
@@ -59,6 +59,37 @@ const EventCard = ({
     return `${adjustedPrice.toFixed(4)} ${chainToken.symbol}`;
   };
 
+  // Get Supabase storage URL or fallback image
+  const getImageUrl = () => {
+    if (!imageUrl || imageUrl.trim() === '') {
+      return getFallbackImage();
+    }
+
+    // Check if it's already a full URL (external or Supabase storage)
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // Check if it's a Supabase storage path
+    if (imageUrl.includes('event-photos/') || imageUrl.startsWith('event-photos/')) {
+      const { data } = supabase.storage
+        .from('event-photos')
+        .getPublicUrl(imageUrl.replace('event-photos/', ''));
+      return data.publicUrl;
+    }
+
+    // If it's a relative path, try to construct Supabase storage URL
+    if (!imageUrl.startsWith('blob:')) {
+      const { data } = supabase.storage
+        .from('event-photos')
+        .getPublicUrl(imageUrl);
+      return data.publicUrl;
+    }
+
+    // Fallback for any other case
+    return getFallbackImage();
+  };
+
   // Get a reliable fallback image
   const getFallbackImage = () => {
     const fallbackImages = [
@@ -80,46 +111,27 @@ const EventCard = ({
   };
 
   const handleImageError = () => {
-    console.log('Image failed to load:', imageUrl);
+    console.log('Image failed to load:', getImageUrl());
     setImageError(true);
     setImageLoaded(false);
   };
 
-  // Check if imageUrl is valid (supports both Supabase storage URLs and external URLs)
-  const isValidImageUrl = (url: string) => {
-    if (!url || url.trim() === '') return false;
-    if (url.startsWith('blob:')) return false;
-    
-    // Check for Supabase storage URLs
-    if (url.includes('supabase') && url.includes('/storage/v1/object/public/')) return true;
-    
-    // Check for valid external URLs
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const shouldShowFallback = !isValidImageUrl(imageUrl) || imageError;
+  const finalImageUrl = getImageUrl();
 
   return (
     <div className="glass-card rounded-xl overflow-hidden transition-all duration-300 hover:translate-y-[-5px] hover:shadow-lg group">
       <div className="relative h-48 overflow-hidden bg-muted">
         {/* Main image */}
-        {isValidImageUrl(imageUrl) && !imageError && (
-          <img 
-            src={imageUrl}
-            alt={title} 
-            className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-          />
-        )}
+        <img 
+          src={finalImageUrl}
+          alt={title} 
+          className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+        />
         
-        {/* Fallback image */}
-        {shouldShowFallback && (
+        {/* Fallback image when main image fails */}
+        {imageError && (
           <div className="absolute inset-0">
             <img 
               src={getFallbackImage()}
